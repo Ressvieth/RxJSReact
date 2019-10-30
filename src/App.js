@@ -1,25 +1,72 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import './styles/App.scss';
+
+import { createStore, applyMiddleware } from 'redux';
+import { createEpicMiddleware } from 'redux-observable';
+import { connect, Provider } from 'react-redux';
+
+import * as actions from './actions';
+import { reducer } from './reducer';
+import 'rxjs';
+
+const epicMiddleware = createEpicMiddleware();
+const store = createStore(
+  reducer,
+  { isLoading: false, isError: false, repositories: [] },
+  applyMiddleware(epicMiddleware)
+);
+
+epicMiddleware.run(actions.getDataEpic);
+
+class Repositories extends React.Component {
+  componentDidMount() {
+    const { getDataRequested } = this.props;
+    getDataRequested();
+  }
+
+  render() {
+    const { isLoading, isError, repositories } = this.props;
+
+    return (
+      isLoading ? <p>...Loading</p> : (
+        <div> 
+          {repositories.map((item, index) => {
+            return (<div key={index}>
+              {item.name}
+            </div>);
+          })}
+        </div>
+      )
+    );
+  }
+}
+
+const mapStateToProps = (state) => {
+  return state;
+};
+const mapDispatchToProps = (dispatch) => {
+  return {
+    getDataRequested: () => dispatch(actions.getDataRequested())
+  }
+};
+
+Repositories = connect(mapStateToProps, mapDispatchToProps)(Repositories);
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Provider store={store}>
+      <div className="App">
+        <header className="App-header">
+          <p>
+            ObservableJS
+          </p>
+          <div className='container'>
+            Test
+          </div>
+          <Repositories />
+        </header>
+      </div>
+    </Provider>
   );
 }
 
