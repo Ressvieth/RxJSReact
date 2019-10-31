@@ -8,6 +8,7 @@ import { connect, Provider } from 'react-redux';
 import * as actions from './actions';
 import { reducer } from './reducer';
 import 'rxjs';
+import logo from './logoRO.gif'
 
 const epicMiddleware = createEpicMiddleware();
 const store = createStore(
@@ -25,16 +26,27 @@ class Repositories extends React.Component {
   }
 
   render() {
-    const { isLoading, isError, repositories } = this.props;
+    const { isLoading, isError, repositories, error } = this.props;
+    console.log(this.props)
 
+    if (isError) return <p className='error'>Error: {error}</p>
     return (
       isLoading ? <p>...Loading</p> : (
-        <div> 
-          {repositories.map((item, index) => {
-            return (<div key={index}>
-              {item.name}
+        <div className='container'> 
+          {/* {repositories && repositories.response && repositories.response.map((item, index) => {
+            return (
+            <div key={index} className='line'>
+              <span>Vol: <span className='white-text has-margin-right'>{item.volume}</span></span>
+              <span className='has-margin-right'>
+                {item.venueName}
+                <span className='white-text has-margin-right'>
+                  ({item.venue})
+                </span>
+              </span>
+              <div> {item.priceImprovement} </div>
             </div>);
-          })}
+          })} */}
+          {console.log(repositories)}
         </div>
       )
     );
@@ -57,12 +69,10 @@ function App() {
     <Provider store={store}>
       <div className="App">
         <header className="App-header">
+          <img className='logo' src={logo} alt='logo'/>
           <p>
-            ObservableJS
+            Redux-observable with RxJS for <i>investors-exchange-iex-trading</i> API
           </p>
-          <div className='container'>
-            Test
-          </div>
           <Repositories />
         </header>
       </div>

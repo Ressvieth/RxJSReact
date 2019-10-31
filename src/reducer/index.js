@@ -7,7 +7,7 @@ export const reducer = (state, action) => {
     case actions.GET_DATA_DONE:
       return { ...state, isLoading: false, repositories: action.payload };
     case actions.GET_DATA_FAILED:
-      return { ...state, isLoading: false, isError: true }
+      return { ...state, isLoading: false, isError: true, error: action.payload }
     default:
       return state;
   }
