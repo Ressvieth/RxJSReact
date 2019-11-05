@@ -25,28 +25,39 @@ class Repositories extends React.Component {
     getDataRequested();
   }
 
+  cancelRequest = () => {
+    const { stopRequest } = this.props;
+    stopRequest();
+  }
+
   render() {
-    const { isLoading, isError, repositories, error } = this.props;
+    const { isLoading, isError, isCancelled, repositories, error } = this.props;
     console.log(this.props)
 
     if (isError) return <p className='error'>Error: {error}</p>
     return (
-      isLoading ? <p>...Loading</p> : (
-        <div className='container'> 
-          {/* {repositories && repositories.response && repositories.response.map((item, index) => {
-            return (
-            <div key={index} className='line'>
-              <span>Vol: <span className='white-text has-margin-right'>{item.volume}</span></span>
-              <span className='has-margin-right'>
-                {item.venueName}
-                <span className='white-text has-margin-right'>
-                  ({item.venue})
+      isLoading ? (
+        <>
+          <p>...Loading</p>
+           <button onClick={this.cancelRequest}>STOP REQUEST</button>
+        </>
+      ) : (
+        <div className='container'>
+          {isCancelled && <p> Request canceled </p>}
+          {repositories && !isCancelled && repositories.response && repositories.response
+            .map((item, index) => {
+              return (
+              <div key={index} className='line'>
+                <span>Vol: <span className='white-text has-margin-right'>{item.volume}</span></span>
+                <span className='has-margin-right'>
+                  {item.venueName}
+                  <span className='white-text has-margin-right'>
+                    ({item.venue})
+                  </span>
                 </span>
-              </span>
-              <div> {item.priceImprovement} </div>
-            </div>);
-          })} */}
-          {console.log(repositories)}
+                <div> {item.priceImprovement} </div>
+              </div>);
+            })}
         </div>
       )
     );
@@ -56,9 +67,11 @@ class Repositories extends React.Component {
 const mapStateToProps = (state) => {
   return state;
 };
+
 const mapDispatchToProps = (dispatch) => {
   return {
-    getDataRequested: () => dispatch(actions.getDataRequested())
+    getDataRequested: () => dispatch(actions.getDataRequested()),
+    stopRequest: () => dispatch(actions.getDataStop())
   }
 };
 

@@ -8,6 +8,8 @@ export const reducer = (state, action) => {
       return { ...state, isLoading: false, repositories: action.payload };
     case actions.GET_DATA_FAILED:
       return { ...state, isLoading: false, isError: true, error: action.payload }
+    case actions.GET_DATA_CANCEL:
+      return { ...state, isLoading: false, isCancelled: true }
     default:
       return state;
   }
