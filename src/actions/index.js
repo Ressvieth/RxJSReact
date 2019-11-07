@@ -1,4 +1,4 @@
-// import { of, Subject } from 'rxjs';
+import { of } from 'rxjs';
 import { webSocket } from 'rxjs/webSocket';
 import { ofType } from 'redux-observable';
 import { mergeMap, map, catchError, takeUntil, retryWhen } from 'rxjs/operators';
@@ -26,7 +26,7 @@ export function getDataStop() {
 }
 
 export function getDataDone(data) {
-  console.log('done', data)
+  console.log('done', data.data[0])
   return {
     type: GET_DATA_DONE,
     payload: data
@@ -43,30 +43,25 @@ export function getDataFailed(error) {
 export const stockDataEpic = (action$) => {
   return action$.pipe(
     ofType(START_STREAM),
-    mergeMap((action) => {
-      console.log('in epic MergeMap', action)
-      return socket.multiplex(
+    mergeMap((action) => (
+      socket.multiplex(
         () => ({ type: 'subscribe', 'symbol': 'AAPL' }),
         () => ({ unsub: action.ticker }),
         msg => msg.type === 'trade'
       )
       .pipe(
-        // catchError(error => {
-        //   console.log('err:', error)
-        //   // return of(getDataFailed(error.response.message))
-        // }),
-      // retryWhen(
-      //   err => window.navigator.onLine ?
-      //     Observable.timer(1000) :
-      //     Observable.fromEvent(window, 'online')
-      // ),
         map(response => getDataDone(response)),
-      // takeUntil(
-      //   action$.pipe(
-      //     ofType('CLOSE_TICKER_STREAM')
-      //     // console.log(closeAction)
-      //     // .filter(closeAction => closeAction.ticker === action.ticker)
-      //   )
-      // )
-    )}));
+        catchError(error => {
+          console.log('err:', error)
+          return of(getDataFailed('Connection error!'))
+        }),
+        retryWhen(
+          err => err.type = 'error'
+        ),
+      takeUntil(
+        action$.pipe(
+          ofType(GET_DATA_CANCEL)
+        )
+      )
+    ))));
 }

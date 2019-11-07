@@ -25,9 +25,9 @@ class Repositories extends React.Component {
     openStockStream();
   }
 
-  cancelRequest = () => {
-    const { stopRequest } = this.props;
-    stopRequest();
+  handleRequest = () => {
+    const { stopRequest, openStockStream, isCancelled } = this.props;
+    return isCancelled ? openStockStream() : stopRequest();
   }
 
   render() {
@@ -41,30 +41,31 @@ class Repositories extends React.Component {
 
     return (
       isLoading ? (
-        <>
-          <p>...Loading</p>
-           <button onClick={this.cancelRequest}>STOP REQUEST</button>
-        </>
+        <p>...Loading</p>
       ) : (
-        <div className='container'>
-          {isCancelled && <p> Request canceled </p>}
-          {repositories && !isCancelled && repositories.data &&
-            repositories.data.map((item, index) => {
-              return (
-                <div key={index} className='line'>
-                <span><span className='white-text has-margin-right'>{item.s}</span></span>
-                <span className='has-margin-right'>
-                  price: &nbsp;
-                  <span className='white-text has-margin-right'>
-                    ${item.p.toFixed(2)}
+        <>
+          <div className='container'>
+            {isCancelled && <p> Request canceled </p>}
+            {repositories && !isCancelled && repositories.data &&
+              repositories.data.map((item, index) => {
+                return (
+                  <div key={index} className='line'>
+                  <span><span className='white-text has-margin-right'>{item.s}</span></span>
+                  <span className='has-margin-right'>
+                    price: &nbsp;
+                    <span className='white-text has-margin-right'>
+                      ${item.p.toFixed(2)}
+                    </span>
                   </span>
-                </span>
-                <div> timestamp: {parseDate(item.t)} </div>
-              </div>
-              );
-            })}
-            {console.log(repositories)}
-        </div>
+                  <div> timestamp: {parseDate(item.t)} </div>
+                </div>
+                );
+              })}
+          </div>
+          <button onClick={this.handleRequest} className='request-button'>
+            {isCancelled ? 'OPEN STREAM' : 'STOP REQUEST'}
+          </button>
+        </>
       )
     );
   }
