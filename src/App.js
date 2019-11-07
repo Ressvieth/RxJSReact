@@ -17,12 +17,13 @@ const store = createStore(
   applyMiddleware(epicMiddleware)
 );
 
-epicMiddleware.run(actions.getDataEpic);
+// epicMiddleware.run(actions.getDataEpic);
+epicMiddleware.run(actions.stockDataEpic);
 
 class Repositories extends React.Component {
   componentDidMount() {
-    const { getDataRequested } = this.props;
-    getDataRequested();
+    const { openStockStream } = this.props;
+    openStockStream();
   }
 
   cancelRequest = () => {
@@ -32,9 +33,33 @@ class Repositories extends React.Component {
 
   render() {
     const { isLoading, isError, isCancelled, repositories, error } = this.props;
-    console.log(this.props)
+
+    // const parseDate = (timestap) => {
+    //   return new Date(timestap * 1e3).toISOString().slice(-13, -5);
+    // }
+    // const updateData = data => {
+    //   if(data && data.data && data.data && JSON.parse(data.data)['type'] !== 'ping') this.setState({ serverData: data });
+    //   // console.log(data)
+    // }
+
+    // const FINNHUBKEY='bn1bubfrh5rdd4srufr0'
+    // const socket = new WebSocket(`wss://ws.finnhub.io?token=${FINNHUBKEY}`);
+
+    // socket.addEventListener('open', function (event) {
+    //   socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'AAPL'}))
+    //   // socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'BINANCE:BTCUSDT'}))
+    //   // socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'IC MARKETS:1'}))
+    // });
+
+    // socket.addEventListener('message', function (event) {
+    //   console.log(event)
+    //   if (event && event.data) updateData(event);
+    // });
 
     if (isError) return <p className='error'>Error: {error}</p>
+    // const data = this.state.serverData.data && this.state.serverData.data && JSON.parse(this.state.serverData.data)
+    // console.log(data.data)
+    // const data = this.state.serverData && JSON.parse(this.state.serverData.data)
     return (
       isLoading ? (
         <>
@@ -44,20 +69,23 @@ class Repositories extends React.Component {
       ) : (
         <div className='container'>
           {isCancelled && <p> Request canceled </p>}
-          {repositories && !isCancelled && repositories.response && repositories.response
-            .map((item, index) => {
+          {/* {(data || {}).data && data.data.map((item, i) => <div key={i}><p key={i}>{item.p.toFixed(2)}: <span className='white-text'>{item.s}</span></p></div>)} */}
+            {repositories && !isCancelled && repositories.response && repositories.response.data &&
+            repositories.response.data.map((item, index) => {
               return (
-              <div key={index} className='line'>
-                <span>Vol: <span className='white-text has-margin-right'>{item.volume}</span></span>
+                <div key={index} className='line'>
+                <span><span className='white-text has-margin-right'>{item.symbol}</span></span>
                 <span className='has-margin-right'>
-                  {item.venueName}
+                  {item.volume}
                   <span className='white-text has-margin-right'>
-                    ({item.venue})
+                    (${item.price})
                   </span>
                 </span>
-                <div> {item.priceImprovement} </div>
-              </div>);
+                <div> {item.last_trade_time} </div>
+              </div>
+              );
             })}
+            {/* {console.log(repositories)} */}
         </div>
       )
     );
@@ -70,7 +98,7 @@ const mapStateToProps = (state) => {
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    getDataRequested: () => dispatch(actions.getDataRequested()),
+    openStockStream: () => dispatch(actions.openStockStream()),
     stopRequest: () => dispatch(actions.getDataStop())
   }
 };
