@@ -5,10 +5,11 @@ import { createStore, applyMiddleware } from 'redux';
 import { createEpicMiddleware } from 'redux-observable';
 import { connect, Provider } from 'react-redux';
 
+import 'rxjs';
 import * as actions from './actions';
 import { reducer } from './reducer';
-import 'rxjs';
-import logo from './logoRO.gif'
+import Chart from './Chart';
+import logo from './logoRO.gif';
 
 const epicMiddleware = createEpicMiddleware();
 const store = createStore(
@@ -20,22 +21,39 @@ const store = createStore(
 epicMiddleware.run(actions.stockDataEpic);
 
 class Repositories extends React.Component {
+  state = {
+    chosenTicker: ''
+  }
+
   componentDidMount() {
+    this.openBasicStocks()
+  }
+
+  openBasicStocks = () => {
     const { openStockStream } = this.props;
-    openStockStream();
+    openStockStream('AAPL');
+    openStockStream('NFLX');
+    openStockStream('FB');
+    openStockStream('AMZN');
+    openStockStream('GOOGL');
+    openStockStream('BINANCE:BTCUSDT');
   }
 
   handleRequest = () => {
-    const { stopRequest, openStockStream, isCancelled } = this.props;
-    return isCancelled ? openStockStream() : stopRequest();
+    const { stopRequest, isCancelled } = this.props;
+    return isCancelled ? this.openBasicStocks() : stopRequest();
   }
 
-  render() {
-    const { isLoading, isError, isCancelled, repositories, error } = this.props;
+  selectSymbol = s => () => this.setState({ chosenTicker: s })
 
-    const parseDate = (timestap) => {
-      return new Date(timestap * 1e3).toISOString().slice(-13, -5);
-    }
+  render() {
+    const { isLoading, isError, isCancelled, tickers, error } = this.props;
+    const { chosenTicker } = this.state
+    const ticker = tickers && tickers.filter(ticker => ticker.s === chosenTicker)[0]
+    console.log(ticker)
+    // const parseDate = (timestap) => {
+    //   return new Date(timestap * 1e3).toISOString().slice(-13, -5);
+    // }
 
     if (isError) return <p className='error'>Error: {error}</p>
 
@@ -44,40 +62,56 @@ class Repositories extends React.Component {
         <p>...Loading</p>
       ) : (
         <>
-          <div className='container'>
-            {isCancelled && <p> Request canceled </p>}
-            {repositories && !isCancelled && repositories.data &&
-              repositories.data.map((item, index) => {
-                return (
-                  <div key={index} className='line'>
-                  <span><span className='white-text has-margin-right'>{item.s}</span></span>
-                  <span className='has-margin-right'>
-                    price: &nbsp;
-                    <span className='white-text has-margin-right'>
-                      ${item.p.toFixed(2)}
-                    </span>
-                  </span>
-                  <div> timestamp: {parseDate(item.t)} </div>
-                </div>
-                );
-              })}
-          </div>
           <button onClick={this.handleRequest} className='request-button'>
             {isCancelled ? 'OPEN STREAM' : 'STOP REQUEST'}
           </button>
+          {isCancelled && <p className='error'> Request canceled </p>}
+          <div className='wrapper'>
+            <div className='container'>
+              <div className='white-background'>
+                <Chart tickers={tickers} />
+              </div>
+              {ticker &&
+                <div className='line'>
+                  <span className='white-text'>{ticker.s}</span>
+                  <span>price: {ticker.p.toFixed(2)}</span>
+                  <span>volume: {ticker.v.toFixed(4)}</span>
+                </div>
+              }
+            </div>
+            <div className='navRight'>
+              SYMBOLS:
+              {tickers && !isCancelled && tickers
+                .map((item, index) => {
+                  return (
+                    <div key={index} className='line'>
+                      <span className='has-margin-right pointer' onClick={this.selectSymbol(item.s)}>
+                        {item.s}
+                      </span>
+                      <span className='has-margin-right'>
+                        <span className='white-text'>
+                          ${item.p.toFixed(2)}
+                        </span>
+                      </span>
+                    </div>
+                  );
+              })}
+            </div>
+          </div>
         </>
       )
     );
   }
 }
 
-const mapStateToProps = (state) => {
-  return state;
-};
+const mapStateToProps = (state) => ({
+  ...state,
+  tickers: Object.values(state.repositories),
+})
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    openStockStream: () => dispatch(actions.openStockStream()),
+    openStockStream: (ticker) => dispatch(actions.openStockStream(ticker)),
     stopRequest: () => dispatch(actions.getDataStop())
   }
 };
@@ -91,7 +125,7 @@ function App() {
         <header className="App-header">
           <img className='logo' src={logo} alt='logo'/>
           <p>
-            Redux-observable websockets with RxJS for <i>investors-exchange-iex-trading</i> API
+            Redux-observable websockets with RxJS for <a href='https://finnhub.io/docs/api'>https://finnhub.io/docs/api</a> API
           </p>
           <Repositories />
         </header>

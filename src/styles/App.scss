@@ -21,10 +21,27 @@
   color: #09d3ac;
 }
 
+.wrapper {
+  display: flex;
+}
+
+.navRight {
+  border-radius: 6px;
+  background-color: silver;
+  color: black;
+  margin: 0 40px;
+  padding: 40px;
+  font-size: 18px;
+  width: 400px;
+}
+
 .container {
+  border-radius: 6px;
   padding: 50px;
   color: black;
   background-color: #09d3ac;
+  width: 780px;
+  height: 566px;
 }
 
 .line {
@@ -49,11 +66,26 @@
   color: crimson;
 }
 
+.pointer {
+  cursor: pointer;
+}
+
 .request-button {
-  margin-top: 20px;
+  margin-bottom: 20px;
   width: 150px;
   height: 30px;
   border-radius: 4px;
   background-color: white;
 }
 
+.white-background {
+  padding: 40px;
+  // background-color: #CFF7EF;
+}
+
+.recharts {
+  &-text {
+    font-size: 12px;
+    font-weight: 800;
+  }
+}
