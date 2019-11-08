@@ -1,45 +1,33 @@
 import React, { Component } from 'react'
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 
 class Chart extends Component {
-  render() {
-    const { tickers } = this.props
-    // const aaaaapl = (tickers.filter(ticker => ticker.s === 'AAPL')[0] || {}).p
-    // console.log('aaaaaaaaaapl', aaaaapl)
-    const data = [
-      { AAPL: (tickers.filter(ticker => ticker.s === 'AAPL')[0] || {}).v },
-      { FB: (tickers.filter(ticker => ticker.s === 'FB')[0] || {}).v },
-      { NFLX: (tickers.filter(ticker => ticker.s === 'NFLX')[0] || {}).v },
-    ]
+  parseDate = (timestap) => {
+    const date = new Date(timestap * 1e3).toLocaleDateString().slice(0, -5)
+    const time = new Date(timestap * 1e3).toLocaleTimeString().slice(0, -3)
+    return `${date} ${time}`
+  }
 
-    const getColor = (itemName) => {
-      switch (itemName) {
-        case 'NFLX': return '#EF0036';
-        case 'AAPL': return '#F1EAEB';
-      default: return '#335BFF';
-      }
-    }
+  render() {
+    const { candleData } = this.props
+    const data = candleData.c.map(c => ({ c }))
+    data.forEach((obj, i) => obj.t = this.parseDate(candleData.t[i]))
 
     return (
-      <ResponsiveContainer height={350}>
-        <BarChart
-          data={data}
-        >
-          <CartesianGrid strokeDasharray='1 3' />
-          <XAxis dataKey='date' />
-          <YAxis />
-          {['AAPL', 'FB', 'NFLX'].map(item => (
-            <Bar
-              key={item}
-              stackId={item}
-              type='monotone'
-              barSize={20}
-              dataKey={item}
-              fill={getColor(item)}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
+      <AreaChart
+        width={800}
+        height={400}
+        data={data}
+        margin={{
+          top: 10, right: 30, left: 0, bottom: 0,
+        }}
+      >
+      <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="t" />
+        <YAxis />
+        <Tooltip />
+        <Area type="monotone" dataKey="c" stroke="#8884d8" fill="#E436E1" />
+      </AreaChart>
     )
   }
 }

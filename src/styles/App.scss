@@ -42,6 +42,7 @@
   background-color: #09d3ac;
   width: 780px;
   height: 566px;
+  font-size: 28px;
 }
 
 .line {
@@ -68,6 +69,10 @@
 
 .pointer {
   cursor: pointer;
+
+  &:hover {
+    color: magenta;
+  }
 }
 
 .request-button {
@@ -76,16 +81,20 @@
   height: 30px;
   border-radius: 4px;
   background-color: white;
+  cursor: pointer;
 }
 
-.white-background {
-  padding: 40px;
-  // background-color: #CFF7EF;
+.chart-wrapper {
+  padding: 40px 0;
+}
+
+.link {
+  color: magenta;
 }
 
 .recharts {
   &-text {
-    font-size: 12px;
+    font-size: 9px;
     font-weight: 800;
   }
 }

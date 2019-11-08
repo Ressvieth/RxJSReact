@@ -1,11 +1,12 @@
 import { of } from 'rxjs';
+import { ajax } from 'rxjs/ajax';
 import { webSocket } from 'rxjs/webSocket';
 import { ofType } from 'redux-observable';
 import { mergeMap, map, catchError, takeUntil } from 'rxjs/operators';
 
 export const GET_DATA_REQUESTED = 'GET_DATA_REQUESTED';
-// export const ADD_TICKER = 'ADD_TICKER'
 export const GET_DATA_DONE = 'GET_DATA_DONE';
+export const GET_CANDLE_DATA_DONE = 'GET_CANDLE_DATA_DONE';
 export const GET_DATA_FAILED = 'GET_DATA_FAILED';
 export const GET_DATA_CANCEL = 'GET_DATA_CANCEL'
 export const START_STREAM = 'START_STREAM'
@@ -14,10 +15,16 @@ const FINNHUBKEY='bn1bubfrh5rdd4srufr0'
 const socket = webSocket(`wss://ws.finnhub.io?token=${FINNHUBKEY}`);
 
 export function openStockStream(ticker) {
-  console.log(ticker)
   return {
     type: START_STREAM,
     ticker,
+  };
+}
+
+export function getCandleData(s) {
+  return {
+    type: GET_DATA_REQUESTED,
+    symbol: s,
   };
 }
 
@@ -29,12 +36,19 @@ export function getDataStop() {
 }
 
 export function getDataDone(data) {
-  console.log('done', data.data[0])
   return {
     type: GET_DATA_DONE,
     payload: {
       [data.data[0].s]: data.data[0]
     }
+  };
+}
+
+export function getCandleDataDone(data) {
+  console.log('done', data.response)
+  return {
+    type: GET_CANDLE_DATA_DONE,
+    payload: data
   };
 }
 
@@ -56,22 +70,35 @@ export const stockDataEpic = (action$) => {
       )
         .pipe(
           map(response => getDataDone(response)),
-          // map(tick => ({
-          //   type: GET_DATA_DONE,
-          //   ticker: tick.ticker,
-          //   value: tick.value
-          // }),
           catchError(error => {
             console.log('err:', error)
             return of(getDataFailed('Connection error!'))
           }),
-          // retryWhen(
-          //   err => err.type = 'error'
-          // ),
-        takeUntil(
-          action$.pipe(
-            ofType(GET_DATA_CANCEL)
+          takeUntil(
+            action$.pipe(
+              ofType(GET_DATA_CANCEL)
+            )
           )
-        )
     ))));
+}
+
+export const getDataEpic = (action$) => {
+  return action$.pipe(
+    ofType(GET_DATA_REQUESTED),
+    mergeMap(action =>
+      ajax({
+        url: `https://finnhub.io/api/v1/stock/candle?symbol=${action.symbol}&resolution=D&count=6&token=${FINNHUBKEY}`,
+        method: 'GET',
+      })
+        .pipe(
+          map(response => getCandleDataDone(response)),
+          catchError(error => {
+            console.log('err:', error)
+            return of(getDataFailed(error.message || error.response.message))
+          }),
+          takeUntil(action$.pipe(
+            ofType(GET_DATA_CANCEL)
+          ))
+        )
+    ))
 }

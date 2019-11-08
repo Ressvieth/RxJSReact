@@ -2,7 +2,7 @@ import React from 'react';
 import './styles/App.scss';
 
 import { createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import { createEpicMiddleware, combineEpics } from 'redux-observable';
 import { connect, Provider } from 'react-redux';
 
 import 'rxjs';
@@ -18,7 +18,12 @@ const store = createStore(
   applyMiddleware(epicMiddleware)
 );
 
-epicMiddleware.run(actions.stockDataEpic);
+export const rootEpic = combineEpics(
+  actions.stockDataEpic,
+  actions.getDataEpic,
+);
+
+epicMiddleware.run(rootEpic);
 
 class Repositories extends React.Component {
   state = {
@@ -31,12 +36,7 @@ class Repositories extends React.Component {
 
   openBasicStocks = () => {
     const { openStockStream } = this.props;
-    openStockStream('AAPL');
-    openStockStream('NFLX');
-    openStockStream('FB');
-    openStockStream('AMZN');
-    openStockStream('GOOGL');
-    openStockStream('BINANCE:BTCUSDT');
+    ['AAPL', 'NFLX', 'FB', 'AMZN', 'GOOGL', 'BINANCE:BTCUSDT'].forEach(s => openStockStream(s));
   }
 
   handleRequest = () => {
@@ -44,62 +44,66 @@ class Repositories extends React.Component {
     return isCancelled ? this.openBasicStocks() : stopRequest();
   }
 
-  selectSymbol = s => () => this.setState({ chosenTicker: s })
+  selectSymbol = s => () => {
+    const { getCandleDataForSymbol } = this.props;
+    getCandleDataForSymbol(s)
+    this.setState({ chosenTicker: s })
+  }
 
   render() {
-    const { isLoading, isError, isCancelled, tickers, error } = this.props;
+    const { isLoading, isError, isCancelled, tickers, error, candleData } = this.props;
     const { chosenTicker } = this.state
     const ticker = tickers && tickers.filter(ticker => ticker.s === chosenTicker)[0]
-    console.log(ticker)
-    // const parseDate = (timestap) => {
-    //   return new Date(timestap * 1e3).toISOString().slice(-13, -5);
-    // }
+    const isPriceHigher = ticker && candleData && (ticker.p > candleData.c[candleData.c.length - 1])
+    const isPriceLower = ticker && candleData && (ticker.p < candleData.c[candleData.c.length - 1])
 
     if (isError) return <p className='error'>Error: {error}</p>
 
     return (
-      isLoading ? (
-        <p>...Loading</p>
-      ) : (
-        <>
-          <button onClick={this.handleRequest} className='request-button'>
-            {isCancelled ? 'OPEN STREAM' : 'STOP REQUEST'}
-          </button>
-          {isCancelled && <p className='error'> Request canceled </p>}
-          <div className='wrapper'>
-            <div className='container'>
-              <div className='white-background'>
-                <Chart tickers={tickers} />
+      <>
+        <button onClick={this.handleRequest} className='request-button'>
+          {isCancelled ? 'OPEN STREAM' : 'STOP REQUEST'}
+        </button>
+        {isCancelled && <p className='error'> Request canceled </p>}
+        <div className='wrapper'>
+          <div className='container'>
+            <div className='chart-wrapper'>
+              {!ticker && <p> Please select a symbol &nbsp;&nbsp;--->> </p>}
+              {isLoading && <p> loading chart... </p>}
+              {ticker && candleData && !isLoading && <Chart candleData={candleData} />}
+            </div>
+            {ticker &&
+              <div className='line'>
+                <span className='white-text'>{ticker.s}</span>
+                <span>price: &nbsp;
+                  <span style={{ 'color': `${isPriceHigher ? '#3CFE01' : 'magenta'}`}}>
+                    {ticker.p.toFixed(2)} {isPriceHigher && '▲'}{isPriceLower && '▼'}
+                  </span>
+                </span>
+                <span>volume: {ticker.v.toFixed(4)}</span>
               </div>
-              {ticker &&
-                <div className='line'>
-                  <span className='white-text'>{ticker.s}</span>
-                  <span>price: {ticker.p.toFixed(2)}</span>
-                  <span>volume: {ticker.v.toFixed(4)}</span>
-                </div>
-              }
-            </div>
-            <div className='navRight'>
-              SYMBOLS:
-              {tickers && !isCancelled && tickers
-                .map((item, index) => {
-                  return (
-                    <div key={index} className='line'>
-                      <span className='has-margin-right pointer' onClick={this.selectSymbol(item.s)}>
-                        {item.s}
-                      </span>
-                      <span className='has-margin-right'>
-                        <span className='white-text'>
-                          ${item.p.toFixed(2)}
-                        </span>
-                      </span>
-                    </div>
-                  );
-              })}
-            </div>
+            }
           </div>
-        </>
-      )
+          <div className='navRight'>
+            SYMBOLS:
+            {tickers && !isCancelled && tickers
+              .map((item, index) => {
+                return (
+                  <div key={index} className='line'>
+                    <span className='has-margin-right pointer' onClick={this.selectSymbol(item.s)}>
+                      {item.s}
+                    </span>
+                    <span className='has-margin-right'>
+                      <span className='white-text'>
+                        ${item.p.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                );
+            })}
+          </div>
+        </div>
+      </>
     );
   }
 }
@@ -111,6 +115,7 @@ const mapStateToProps = (state) => ({
 
 const mapDispatchToProps = (dispatch) => {
   return {
+    getCandleDataForSymbol: s => dispatch(actions.getCandleData(s)),
     openStockStream: (ticker) => dispatch(actions.openStockStream(ticker)),
     stopRequest: () => dispatch(actions.getDataStop())
   }
@@ -125,7 +130,7 @@ function App() {
         <header className="App-header">
           <img className='logo' src={logo} alt='logo'/>
           <p>
-            Redux-observable websockets with RxJS for <a href='https://finnhub.io/docs/api'>https://finnhub.io/docs/api</a> API
+            Redux-observable websockets with RxJS for <a className='link' href='https://finnhub.io/docs/api'>https://finnhub.io/docs/api</a> API
           </p>
           <Repositories />
         </header>
