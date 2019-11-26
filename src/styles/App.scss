@@ -21,10 +21,28 @@
   color: #09d3ac;
 }
 
+.wrapper {
+  display: flex;
+}
+
+.navRight {
+  border-radius: 6px;
+  background-color: silver;
+  color: black;
+  margin: 0 40px;
+  padding: 40px;
+  font-size: 18px;
+  width: 400px;
+}
+
 .container {
+  border-radius: 6px;
   padding: 50px;
   color: black;
   background-color: #09d3ac;
+  width: 780px;
+  height: 566px;
+  font-size: 28px;
 }
 
 .line {
@@ -49,3 +67,34 @@
   color: crimson;
 }
 
+.pointer {
+  cursor: pointer;
+
+  &:hover {
+    color: magenta;
+  }
+}
+
+.request-button {
+  margin-bottom: 20px;
+  width: 150px;
+  height: 30px;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.chart-wrapper {
+  padding: 40px 0;
+}
+
+.link {
+  color: magenta;
+}
+
+.recharts {
+  &-text {
+    font-size: 9px;
+    font-weight: 800;
+  }
+}

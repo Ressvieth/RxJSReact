@@ -2,13 +2,14 @@ import React from 'react';
 import './styles/App.scss';
 
 import { createStore, applyMiddleware } from 'redux';
-import { createEpicMiddleware } from 'redux-observable';
+import { createEpicMiddleware, combineEpics } from 'redux-observable';
 import { connect, Provider } from 'react-redux';
 
+import 'rxjs';
 import * as actions from './actions';
 import { reducer } from './reducer';
-import 'rxjs';
-import logo from './logoRO.gif'
+import Chart from './Chart';
+import logo from './logoRO.gif';
 
 const epicMiddleware = createEpicMiddleware();
 const store = createStore(
@@ -17,60 +18,105 @@ const store = createStore(
   applyMiddleware(epicMiddleware)
 );
 
-epicMiddleware.run(actions.getDataEpic);
+export const rootEpic = combineEpics(
+  actions.stockDataEpic,
+  actions.getDataEpic,
+);
+
+epicMiddleware.run(rootEpic);
 
 class Repositories extends React.Component {
-  componentDidMount() {
-    const { getDataRequested } = this.props;
-    getDataRequested();
+  state = {
+    chosenTicker: ''
   }
 
-  cancelRequest = () => {
-    const { stopRequest } = this.props;
-    stopRequest();
+  componentDidMount() {
+    this.openBasicStocks()
+  }
+
+  openBasicStocks = () => {
+    const { openStockStream } = this.props;
+    ['AAPL', 'NFLX', 'FB', 'AMZN', 'GOOGL', 'BINANCE:BTCUSDT'].forEach(s => openStockStream(s));
+  }
+
+  handleRequest = () => {
+    const { stopRequest, isCancelled } = this.props;
+    return isCancelled ? this.openBasicStocks() : stopRequest();
+  }
+
+  selectSymbol = s => () => {
+    const { getCandleDataForSymbol } = this.props;
+    getCandleDataForSymbol(s)
+    this.setState({ chosenTicker: s })
   }
 
   render() {
-    const { isLoading, isError, isCancelled, repositories, error } = this.props;
-    console.log(this.props)
+    const { isLoading, isError, isCancelled, tickers, error, candleData } = this.props;
+    const { chosenTicker } = this.state
+    const ticker = tickers && tickers.filter(ticker => ticker.s === chosenTicker)[0]
+    const isPriceHigher = ticker && candleData && (ticker.p > candleData.c[candleData.c.length - 1])
+    const isPriceLower = ticker && candleData && (ticker.p < candleData.c[candleData.c.length - 1])
 
     if (isError) return <p className='error'>Error: {error}</p>
+
     return (
-      isLoading ? (
-        <>
-          <p>...Loading</p>
-           <button onClick={this.cancelRequest}>STOP REQUEST</button>
-        </>
-      ) : (
-        <div className='container'>
-          {isCancelled && <p> Request canceled </p>}
-          {repositories && !isCancelled && repositories.response && repositories.response
-            .map((item, index) => {
-              return (
-              <div key={index} className='line'>
-                <span>Vol: <span className='white-text has-margin-right'>{item.volume}</span></span>
-                <span className='has-margin-right'>
-                  {item.venueName}
-                  <span className='white-text has-margin-right'>
-                    ({item.venue})
+      <>
+        <button onClick={this.handleRequest} className='request-button'>
+          {isCancelled ? 'OPEN STREAM' : 'STOP REQUEST'}
+        </button>
+        {isCancelled && <p className='error'> Request canceled </p>}
+        <div className='wrapper'>
+          <div className='container'>
+            <div className='chart-wrapper'>
+              {!ticker && <p> Please select a symbol &nbsp;&nbsp;--->> </p>}
+              {isLoading && <p> loading chart... </p>}
+              {ticker && candleData && !isLoading && <Chart candleData={candleData} />}
+            </div>
+            {ticker &&
+              <div className='line'>
+                <span className='white-text'>{ticker.s}</span>
+                <span>price: &nbsp;
+                  <span style={{ 'color': `${isPriceHigher ? '#3CFE01' : 'magenta'}`}}>
+                    {ticker.p.toFixed(2)} {isPriceHigher && '▲'}{isPriceLower && '▼'}
                   </span>
                 </span>
-                <div> {item.priceImprovement} </div>
-              </div>);
+                <span>volume: {ticker.v.toFixed(4)}</span>
+              </div>
+            }
+          </div>
+          <div className='navRight'>
+            SYMBOLS:
+            {tickers && !isCancelled && tickers
+              .map((item, index) => {
+                return (
+                  <div key={index} className='line'>
+                    <span className='has-margin-right pointer' onClick={this.selectSymbol(item.s)}>
+                      {item.s}
+                    </span>
+                    <span className='has-margin-right'>
+                      <span className='white-text'>
+                        ${item.p.toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                );
             })}
+          </div>
         </div>
-      )
+      </>
     );
   }
 }
 
-const mapStateToProps = (state) => {
-  return state;
-};
+const mapStateToProps = (state) => ({
+  ...state,
+  tickers: Object.values(state.repositories),
+})
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    getDataRequested: () => dispatch(actions.getDataRequested()),
+    getCandleDataForSymbol: s => dispatch(actions.getCandleData(s)),
+    openStockStream: (ticker) => dispatch(actions.openStockStream(ticker)),
     stopRequest: () => dispatch(actions.getDataStop())
   }
 };
@@ -84,7 +130,7 @@ function App() {
         <header className="App-header">
           <img className='logo' src={logo} alt='logo'/>
           <p>
-            Redux-observable with RxJS for <i>investors-exchange-iex-trading</i> API
+            Redux-observable websockets with RxJS for <a className='link' href='https://finnhub.io/docs/api'>https://finnhub.io/docs/api</a> API
           </p>
           <Repositories />
         </header>
